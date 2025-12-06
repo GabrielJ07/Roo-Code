@@ -372,36 +372,37 @@ export async function addCustomInstructions(
 
 	// SovereignBuilder specific logic
 	if (mode === "sovereign-builder") {
-		const schemaPath = path.join(cwd, "schema.md")
-		const schemaPathUpper = path.join(cwd, "SCHEMA.md")
+		const schemaPath = path.join(cwd, "SCHEMA.md")
 		let schemaContent = ""
 
-		if (await fileExistsAtPath(schemaPath)) {
-			schemaContent = await safeReadFile(schemaPath)
-		} else if (await fileExistsAtPath(schemaPathUpper)) {
-			schemaContent = await safeReadFile(schemaPathUpper)
+		try {
+			// Attempt to read the schema file to ground the agent
+			await fs.access(schemaPath)
+			const content = await fs.readFile(schemaPath, "utf-8")
+			schemaContent = `\n\nCRITICAL ARCHITECTURE SCHEMA (The Law):\n\`\`\`json\n${content}\n\`\`\`\n`
+		} catch (error) {
+			schemaContent =
+				"\n\nWARNING: No SCHEMA.md found in workspace root. Please create one to define the Agent Spec format before proceeding.\n"
 		}
 
-		const sovereignInstructions = []
+		const sovereignInstructions = `
+${schemaContent}
 
-		if (schemaContent) {
-			sovereignInstructions.push(`PRIMARY DIRECTIVE (High Priority):\n${schemaContent}`)
-		} else {
-			sovereignInstructions.push(
-				"WARNING: No 'schema.md' or 'SCHEMA.md' found in the workspace root. Please create one to define the project rules.",
-			)
-		}
+SOVEREIGN BUILDER PROTOCOL:
 
-		sovereignInstructions.push(
-			"STRICT CONSTRAINTS:\n1. You must only output JSON plans or direct file edits.\n2. Do not be chatty. Keep responses concise.\n3. You must strictly reject any code libraries not defined in the Schema (e.g., if Schema says 'Directus', reject 'Firebase').",
-		)
-
+1.  **JSON ONLY:** You are strictly forbidden from writing Python/JS code for Agents. You may ONLY create/edit JSON files in the 'agent_specs/' directory.
+2.  **Registry Adherence:** You may ONLY use tools defined in the 'TOOL_REGISTRY' (e.g., "web_search", "python_repl", "memory_retrieve"). Do not hallucinate new tools.
+3.  **Model Agnosticism:** Use 'primary_model' keys like "gemini-2.5-pro" or "local_mistral". Do not hardcode API specific classes.
+4.  **Validation:** After creating a spec, run 'python director.py --validate [spec_name]' (if available) or ask the user to verify.
+5.  **Silence:** Do not provide meta-commentary. Output the JSON spec or the diff.
+`
+		// Strict return for Sovereign Builder
 		return `
 ====
 
 SOVEREIGN BUILDER INSTRUCTIONS
 
-${sovereignInstructions.join("\n\n")}
+${sovereignInstructions}
 
 ${joinedSections ? `\nUSER'S CUSTOM INSTRUCTIONS\n\n${joinedSections}` : ""}
 `
