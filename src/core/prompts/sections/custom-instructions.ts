@@ -2,6 +2,7 @@ import fs from "fs/promises"
 import path from "path"
 import * as os from "os"
 import { Dirent } from "fs"
+import { fileExistsAtPath } from "../../../utils/fs"
 
 import { isLanguage } from "@roo-code/types"
 
@@ -368,6 +369,43 @@ export async function addCustomInstructions(
 	}
 
 	const joinedSections = sections.join("\n\n")
+
+	// SovereignBuilder specific logic
+	if (mode === "sovereign-builder") {
+		const schemaPath = path.join(cwd, "schema.md")
+		const schemaPathUpper = path.join(cwd, "SCHEMA.md")
+		let schemaContent = ""
+
+		if (await fileExistsAtPath(schemaPath)) {
+			schemaContent = await safeReadFile(schemaPath)
+		} else if (await fileExistsAtPath(schemaPathUpper)) {
+			schemaContent = await safeReadFile(schemaPathUpper)
+		}
+
+		const sovereignInstructions = []
+
+		if (schemaContent) {
+			sovereignInstructions.push(`PRIMARY DIRECTIVE (High Priority):\n${schemaContent}`)
+		} else {
+			sovereignInstructions.push(
+				"WARNING: No 'schema.md' or 'SCHEMA.md' found in the workspace root. Please create one to define the project rules.",
+			)
+		}
+
+		sovereignInstructions.push(
+			"STRICT CONSTRAINTS:\n1. You must only output JSON plans or direct file edits.\n2. Do not be chatty. Keep responses concise.\n3. You must strictly reject any code libraries not defined in the Schema (e.g., if Schema says 'Directus', reject 'Firebase').",
+		)
+
+		return `
+====
+
+SOVEREIGN BUILDER INSTRUCTIONS
+
+${sovereignInstructions.join("\n\n")}
+
+${joinedSections ? `\nUSER'S CUSTOM INSTRUCTIONS\n\n${joinedSections}` : ""}
+`
+	}
 
 	const effectiveProtocol = getEffectiveProtocol(options.settings?.toolProtocol)
 

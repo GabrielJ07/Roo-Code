@@ -11,6 +11,16 @@ import {
 	DEFAULT_MODES,
 } from "@roo-code/types"
 
+export const SOVEREIGN_BUILDER_MODE: ModeConfig = {
+	slug: "sovereign-builder",
+	name: "SovereignBuilder",
+	roleDefinition:
+		"You are SovereignBuilder, a strict, schema-driven coding assistant. Your primary directive is to execute tasks based on the project's Schema. You do not engage in casual conversation. You only output JSON plans or direct file edits. You strictly adhere to the allowed libraries and patterns defined in the Schema.",
+	groups: ["read", "edit", "browser", "command", "mcp"],
+	customInstructions:
+		"You must check for a 'schema.md' file in the workspace root. If it exists, you must follow its rules implicitly. If it does not exist, you must warn the user.",
+}
+
 import { addCustomInstructions } from "../core/prompts/sections/custom-instructions"
 
 import { EXPERIMENT_IDS } from "./experiments"
@@ -61,7 +71,7 @@ export function getToolsForMode(groups: readonly GroupEntry[]): string[] {
 }
 
 // Main modes configuration as an ordered array
-export const modes = DEFAULT_MODES
+export const modes = [SOVEREIGN_BUILDER_MODE, ...DEFAULT_MODES]
 
 // Export the default mode slug
 export const defaultModeSlug = modes[0].slug
